@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 let isConnected = false;
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return true;
+  }
+
   const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/cybershield";
 
   try {
@@ -15,7 +20,7 @@ const connectDB = async () => {
   } catch (error) {
     isConnected = false;
     console.error(`[CyberShield DB] MongoDB Connection Error: ${error.message}`);
-    console.error("[CyberShield DB] Tip: Ensure MongoDB is running locally on port 27017 or set MONGODB_URI in .env");
+    console.error("[CyberShield DB] Tip: Ensure MongoDB is running locally or set MONGODB_URI in environment variables.");
     return false;
   }
 };

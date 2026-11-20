@@ -13,6 +13,19 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Ensure database connection in serverless environments
+app.use(async (req, res, next) => {
+  try {
+    const status = getDBStatus();
+    if (!status.connected && (process.env.MONGODB_URI || process.env.VERCEL)) {
+      await connectDB();
+    }
+  } catch (err) {
+    console.error("[CyberShield Serverless] DB connect error:", err.message);
+  }
+  next();
+});
+
 // Health Check Endpoint
 app.get("/api/health", (req, res) => {
   const dbStatus = getDBStatus();
@@ -39,17 +52,21 @@ app.use((req, res) => {
 // Centralized Error Handler
 app.use(errorHandler);
 
-// Start Server & Connect Database
-const startServer = async () => {
-  await connectDB();
+// Start Server locally if run directly
+if (require.main === module && !process.env.VERCEL) {
+  const startServer = async () => {
+    await connectDB();
 
-  app.listen(PORT, () => {
-    console.log(`=========================================`);
-    console.log(`🛡️  CyberShield Backend Server Running`);
-    console.log(`📍 Port: ${PORT}`);
-    console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
-    console.log(`=========================================`);
-  });
-};
+    app.listen(PORT, () => {
+      console.log(`=========================================`);
+      console.log(`🛡️  CyberShield Backend Server Running`);
+      console.log(`📍 Port: ${PORT}`);
+      console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
+      console.log(`=========================================`);
+    });
+  };
 
-startServer();
+  startServer();
+}
+
+module.exports = app;
