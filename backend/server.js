@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Ensure database connection in serverless environments
+// Ensure database connection
 app.use(async (req, res, next) => {
   try {
     const status = getDBStatus();
@@ -26,8 +26,8 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Health Check Endpoint
-app.get("/api/health", (req, res) => {
+// Health Check Endpoint (supports both /api/health and /health)
+app.get(["/api/health", "/health"], (req, res) => {
   const dbStatus = getDBStatus();
   res.status(200).json({
     status: "ok",
@@ -38,8 +38,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Scan & Intelligence API Routes
+// Scan & Intelligence API Routes (mount on both /api and root for rewrite flexibility)
 app.use("/api", scanRoutes);
+app.use("/", scanRoutes);
 
 // 404 Route Handler
 app.use((req, res) => {
@@ -52,20 +53,20 @@ app.use((req, res) => {
 // Centralized Error Handler
 app.use(errorHandler);
 
-// Start Server locally if run directly
-if (require.main === module && !process.env.VERCEL) {
-  const startServer = async () => {
-    await connectDB();
+// Start Server listener
+const startServer = async () => {
+  await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`=========================================`);
-      console.log(`🛡️  CyberShield Backend Server Running`);
-      console.log(`📍 Port: ${PORT}`);
-      console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
-      console.log(`=========================================`);
-    });
-  };
+  app.listen(PORT, () => {
+    console.log(`=========================================`);
+    console.log(`🛡️  CyberShield Backend Server Running`);
+    console.log(`📍 Port: ${PORT}`);
+    console.log(`🌐 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`=========================================`);
+  });
+};
 
+if (require.main === module || !process.env.VERCEL) {
   startServer();
 }
 
